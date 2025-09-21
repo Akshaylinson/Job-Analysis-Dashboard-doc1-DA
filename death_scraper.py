@@ -197,4 +197,111 @@ def run_scrape_interactive():
     seq_counters = {}
     total_links_tried = 0
 
+    # iterate queries (fallback list)
+    for q_idx, query in enumerate(SEARCH_QUERIES, start=1):
+        if len(collected) >= MIN_CASES_PER_RUN:
+            break
+        print(f"\n[STEP] Running query #{q_idx}/{len(SEARCH_QUERIES)}: {query}")
+        try:
+            links_with_dates = google_news_rss_links(query, max_items=MAX_LINKS_PER_QUERY)
+        except Exception as e:
+            print(f"[RSS ERROR] Query failed: {e}")
+            continue
+
+        print(f"[STEP] Processing up to {len(links_with_dates)} links from this query.")
+        for i, (url, entry_date) in enumerate(links_with_dates, start=1):
+            if len(collected) >= MIN_CASES_PER_RUN:
+                break
+            total_links_tried += 1
+            if total_links_tried > MAX_TOTAL_LINKS_TO_TRY:
+                print("[LIMIT] Reached overall max links tried cap. Stopping.")
+                break
+
+            if not url:
+                continue
+            if url in seen_urls:
+                if i % LOG_EVERY_N == 0:
+                    print(f"[SKIP] (already seen) {i}/{len(links_with_dates)} - {url}")
+                continue
+
+            # If the RSS entry reports a date and it doesn't match target, skip early
+            if entry_date and entry_date != target_date:
+                if i % LOG_EVERY_N == 0:
+                    print(f"[SKIP] (rss-date-mismatch) {i}/{len(links_with_dates)} - entry_date={entry_date}")
+                continue
+
+            if i % LOG_EVERY_N == 1:
+                print(f"[INFO] Processing link {i}/{len(links_with_dates)}: {url}")
+
+            title, text, publish_date, fetch_status = fetch_article_text(url)
+            if fetch_status != "ok":
+                print(f"[FETCH] {i}/{len(links_with_dates)} -> {fetch_status} for {url}")
+                time.sleep(DELAY_BETWEEN_REQUESTS)
+                continue
+
+            # when user asked for specific date, ensure article publish_date matches target (best-effort)
+            if target_date and publish_date and publish_date != target_date:
+                print(f"[SKIP] (article-date-mismatch) publish_date={publish_date} != target={target_date} | {url}")
+                time.sleep(DELAY_BETWEEN_REQUESTS)
+                continue
+            # if no publish_date and user requested specific date, skip (to avoid wrong-day picks)
+            if target_date and not publish_date and entry_date is None:
+                # skip ambiguous ones to be conservative
+                if i % LOG_EVERY_N == 0:
+                    print(f"[SKIP] (no-date-info) skipping ambiguous article {url}")
+                time.sleep(DELAY_BETWEEN_REQUESTS)
+                continue
+
+            combined = (title or "") + " " + (text or "")
+            # relaxed keyword filter (catch many variants)
+            if not re.search(r'\b(dead|death|died|dies|killed|murder|suicide|accident|body found|found dead|victim|drowned|shot)\b', combined, flags=re.I):
+                if i % LOG_EVERY_N == 0:
+                    print(f"[SKIP] (no-keyword) {i}/{len(links_with_dates)} - {title[:120]}")
+                time.sleep(DELAY_BETWEEN_REQUESTS)
+                continue
+
+            # extract details
+            age, gender = find_age_gender(combined)
+            cause, context = find_cause_and_context(combined)
+            host = urlparse(url).netloc.lower().replace("www.", "")
+            src = domain_to_source(host)
+            seq_counters[src] = seq_counters.get(src, 0) + 1
+            case_id = normalize_case_id(src, target_date, seq_counters[src])
+
+            record = {
+                "case_id": case_id,
+                "reported_date": target_date,
+                "state": None,
+                "district": None,
+                "gender": gender or "Unknown",
+                "age": age if age is not None else None,
+                "cause_of_death": cause,
+                "reason_or_context": (context[:300] if context else None),
+                "source_name": host,
+                "source_url": url,
+                "verified": True if host in DOMAIN_SOURCE_MAP else False
+            }
+
+            collected.append(record)
+            seen_urls.add(url)
+            print(f"[ACCEPT] {len(collected)} | {case_id} | {host} | age={record['age']} | gender={record['gender']} | cause={record['cause_of_death']}")
+            time.sleep(DELAY_BETWEEN_REQUESTS)
+
+        # safety: if reached global cap, break outer loop
+        if total_links_tried > MAX_TOTAL_LINKS_TO_TRY:
+            break
+
+    # summary and save
+    if collected:
+        existing_by_url = {e.get("source_url"): e for e in existing if isinstance(e, dict)}
+        new_records = [r for r in collected if r["source_url"] not in existing_by_url]
+        final = existing + new_records
+        with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+            json.dump(final, f, indent=2, ensure_ascii=False)
+        print(f"\n[DONE] Collected {len(collected)} candidates in this run; appended {len(new_records)} new records to {OUTPUT_FILE}.")
+    else:
+        print("\n[DONE] No new records collected in this run. No changes written to file.")
+
+if __name__ == "__main__":
+    run_scrape_interactive()
 
