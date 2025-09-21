@@ -1,19 +1,28 @@
-# 📊 Programs Dashboard — Companies & Monthly Trends
 
-## 🔎 Project Overview
-This project is an **interactive data analysis dashboard** built with **Streamlit**, **Pandas**, and **Plotly**.  
-It reads structured data from a local **JSON file (`data.json`)** containing internship, training, or fellowship opportunities from top companies and startups.  
+📰 Death Dashboard – Data Analytics Project
+📌 Overview
 
-The dashboard allows users to:
-- Analyze **which companies host the most programs**.
-- Identify **seasonal and monthly trends** in hosted programs.
-- Compare **domains** (AI, Data Analyst, Python, Go, etc.) and **program types** (Internship, Training, Fellowship).
-- Drill down into a **single company** or **compare multiple companies** over time.
-- Visualize results with **bar charts, area charts, heatmaps, and pie charts**.
+This project is a data analytics pipeline + dashboard for tracking and visualizing daily reported death cases in India from public news sources.
 
-This tool is designed for **students, analysts, or career researchers** who want insights into **how different companies release programs across months and years**.
+It consists of three main parts:
 
----
+Scraper (death_scraper.py) – Collects daily death-related cases from Google News RSS feeds and saves them into scrap_data.json.
+
+MCP Server (death_mcp_server.py) – Wraps the scraper as a tool for integration with MCP-compatible assistants.
+
+Dashboard (app.py) – An interactive Streamlit dashboard that loads cases from JSON (data.json or scrap_data.json) and provides analytics (charts, filters, tables).
+
+📂 Project Structure
+Death-Dashboard-DA_Doc2/
+│
+├─ venv/                     # Python virtual environment
+├─ app.py                    # Streamlit dashboard
+├─ data.json                 # Sample dataset (for testing)
+├─ scrap_data.json           # Auto-generated dataset (from scraper)
+├─ death_scraper.py          # Scraper (news -> scrap_data.json)
+├─ death_mcp_server.py       # MCP server wrapper around scraper
+├─ requirements.txt          # Dependencies list
+└─ README.md                 # Project documentation
 
 ## ✨ Features
 - 📅 **Season → Month Mapping**: Flexible parsing of `start_date` (e.g., *"Summer 2026"* → **July 2026** or **June 2026**).  
@@ -30,144 +39,126 @@ This tool is designed for **students, analysts, or career researchers** who want
 
 ---
 
-## 📂 Folder Structure
-program-dashboard/
-│
-├── app.py # Main Streamlit app
-├── data.json # Input dataset (sample provided)
-├── requirements.txt # Dependencies (optional, use pip install instead)
-└── venv/ # Virtual environment (created locally)
+The dashboard allows users to:
+- Analyze **which companies host the most programs**.
+- Identify **seasonal and monthly trends** in hosted programs.
+- Compare **domains** (AI, Data Analyst, Python, Go, etc.) and **program types** (Internship, Training, Fellowship).
+- Drill down into a **single company** or **compare multiple companies** over time.
+- Visualize results with **bar charts, area charts, heatmaps, and pie charts**.
 
-yaml
-Copy code
+This tool is designed for **students, analysts, or career researchers** who want insights into **how different companies release programs across months and years**.
 
 ---
 
-## 🛠 Setup Guide
+⚙️ Installation
 
-### 1. Clone or create project folder
-```bash
-mkdir program-dashboard
-cd program-dashboard
-2. Add the files
-Save app.py (from this repo/code).
+Clone repo / open project
 
-Save your dataset as data.json.
+git clone <your-repo-url>
+cd Death-Dashboard-DA_Doc2
 
-(Optional) create requirements.txt.
 
-3. Create virtual environment
-Windows (PowerShell):
-powershell
-Copy code
+Create & activate virtual environment
+
 python -m venv venv
+# Windows
 venv\Scripts\activate
-macOS / Linux:
-bash
-Copy code
-python3 -m venv venv
+# macOS/Linux
 source venv/bin/activate
-4. Install dependencies
-Install each package separately for clarity:
 
-bash
-Copy code
-pip install streamlit
-pip install pandas
-pip install plotly
-pip install python-dateutil
-(You already have them if you see them in pip list.)
 
-🚀 Running the Dashboard
-Once setup is done, run:
+Install dependencies
 
-bash
-Copy code
+pip install -r requirements.txt
+
+📦 Dependencies
+
+requirements.txt includes:
+
+streamlit
+pandas
+plotly
+requests
+beautifulsoup4
+feedparser
+python-dateutil
+
+▶️ Usage
+1. Run the Scraper
+
+Interactive scraper that asks for a target date (default: today), collects >=15 cases, and saves them into scrap_data.json.
+
+python death_scraper.py
+
+
+Logs show RSS queries, articles processed, and accepted records.
+
+2. Run the MCP Server
+
+Wraps the scraper as a MCP tool for assistant integration.
+The tool scrape_daily can be invoked to refresh daily records.
+
+python death_mcp_server.py
+
+3. Run the Dashboard
+
+Streamlit dashboard to visualize the cases.
+
 streamlit run app.py
-Then open the link Streamlit provides (usually http://localhost:8501).
 
-📊 Explanation of Visuals
-1. KPIs (Top Metrics)
-Total Programs → total number of entries in dataset.
 
-Unique Companies → how many distinct companies host programs.
+Then open http://localhost:8501
+ in your browser.
 
-Programs with Month Info → how many start dates were successfully parsed.
+By default, it loads from scrap_data.json (if available) or data.json (sample).
 
-Programs in Selected Year Range → filtered subset count.
+📊 Dashboard Features
 
-2. Top Companies Bar Chart
-Shows the companies hosting the most programs overall.
+Filters: Date range, states, verified only, age range.
 
-3. Monthly Timeline (Stacked)
-Stacked area chart:
+KPIs: Total cases, verified cases, distinct states, average age.
 
-X-axis → months (Jan 2025, Feb 2025, etc.)
+Charts:
 
-Y-axis → program count
+Deaths by state (bar chart)
 
-Colors → companies
+Monthly time series (line chart)
 
-Helps visualize seasonal hosting trends.
+Top causes of death (horizontal bar)
 
-4. Heatmap (Companies × Months)
-Matrix visualization:
+Age distribution (histogram)
 
-Rows → companies
+Table view with source links.
 
-Columns → months
+CSV download of filtered data.
 
-Colors → intensity (# of programs)
+🔄 Workflow
 
-Highlights when each company is most active.
+Run death_scraper.py → generates scrap_data.json.
 
-5. Top Month per Company
-Table showing each company’s busiest month with count.
+Run app.py → interactive analytics dashboard.
 
-6. Drill-Down View
-Pick one company to analyze in detail:
+Optionally run death_mcp_server.py → expose scraper via MCP for automation.
 
-Programs list
+🛡️ Notes
 
-Timeline of that company’s activity
+The scraper collects publicly available news reports only.
 
-7. Company Comparisons
-Select multiple companies → line chart + small multiples.
-See how companies trend against each other over time.
+Records include verified flag based on source credibility mapping.
 
-8. Domain & Type Breakdown
-Pie chart → which domains (AI, Data Analyst, Go, Python) dominate.
+This project is for research, analysis, and educational purposes – not for official reporting.
 
-Bar chart → which program types (Internship, Training, Fellowship) dominate.
+🚀 Roadmap / Next Steps
 
-📥 Data Input Format
-The dashboard expects a JSON array of objects with fields like:
+ Add India state-level geo-visualization (choropleth map).
 
-json
-Copy code
-{
-  "domain": "AI",
-  "program_name": "Microsoft Research Internship (AI/ML)",
-  "host_company_or_startup": "Microsoft",
-  "type": "Internship",
-  "application_deadline": "varies",
-  "start_date": "Summer 2026",
-  "location": "Global",
-  "eligibility": "Grad/Undergrad",
-  "short_summary": "Research internships in AI/ML teams.",
-  "official_link": "https://careers.microsoft.com",
-  "source_name": "careers.microsoft.com"
-}
-start_date can be free-text (Summer 2026, self-paced, rolling).
+ Automate daily scraping with a scheduler (cron/Task Scheduler).
 
-Parser will map seasons/months intelligently.
+ Enhance NLP extraction for state/district detection.
 
-🔮 Future Improvements
-⏩ Add rolling average trend lines (3-month smoothing).
+ Export to SQL/NoSQL databases for long-term analytics.
 
-🖱️ Enable click-to-drill-down using streamlit-plotly-events.
+ Dockerize the project for easier deployment.
 
-🛜 Add Google Sheets / API integration for live updates.
-
-📑 Export PDF reports with charts and summaries.
+ summaries.
 
