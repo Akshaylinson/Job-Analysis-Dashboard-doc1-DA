@@ -13,6 +13,8 @@ MCP Server (death_mcp_server.py) – Wraps the scraper as a tool for integration
 
 Dashboard (app.py) – An interactive Streamlit dashboard that loads cases from JSON (data.json or scrap_data.json) and provides analytics (charts, filters, tables).
 
+
+
 📂 Project Structure
 Death-Dashboard-DA_Doc2/
 │
