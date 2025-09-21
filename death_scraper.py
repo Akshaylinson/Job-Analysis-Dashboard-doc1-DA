@@ -1,15 +1,4 @@
-#!/usr/bin/env python3
-"""
-Robust daily death-case scraper (Google News RSS) with detailed terminal logs & progress.
-- Interactive: asks for target date (press Enter for today).
-- Attempts multiple queries and up to MAX_LINKS_PER_QUERY links each.
-- Verbose logging: prints RSS counts, per-link fetch status, reasons for skipping.
-- Stops when it has at least MIN_CASES_PER_RUN new records or when limits reached.
-- Saves results to scrap_data.json
 
-Run:
-  python death_scraper_verbose.py
-"""
 
 import re
 import json
